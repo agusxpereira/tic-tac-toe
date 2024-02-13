@@ -29,7 +29,7 @@ const gameBoard = (function(){
         const displayBoard = document.querySelector("#board");
         const board = gameBoard.board;
 
-        let counter = 0;
+        let counter = -1;
         let counterRow = -1;
         for(arr of board){
             counterRow++;
@@ -47,7 +47,7 @@ const gameBoard = (function(){
                 div.dataset.index = counter;
                 row.appendChild(div);
             }
-            counter=0;
+            counter=-1;
             displayBoard.appendChild(row);
            
         }
@@ -127,12 +127,12 @@ const handleGame = (function(){
 
 
 
-    function setBox(marker, index, pos, box=null){
+    function setBox(marker, index, pos, box){
         
-        board[index][pos] = marker;
-        box.textContent = marker;
+/*         board[index][pos] = marker;
+        box.textContent = marker; */
         
-        if(box != null){      
+        if(box !== null){                
             board[index][pos] = marker;
             if (box.classList.contains("free")) {
                 box.classList.remove("free");
@@ -155,76 +155,73 @@ const handleGame = (function(){
     };
 
     function movePc(player) {
-        console.log("hola");
 
         const boxes = document.querySelectorAll(".box");
         let i = Math.floor(Math.random() * 3);
         let j = Math.floor(Math.random() * 3);
-        let counter = 0;
         let boxTarget = "";
         boxes.forEach(box =>{
-            let pos = Number(box.dataset.index)-1;
+            let pos = Number(box.dataset.index);
             let index = Number(box.parentElement.dataset.index);
             
+
             if(i == pos && j == index && box.classList.contains("free")){
-                console.log("pos:" + pos); 
-                console.log("index:" + index); 
+                console.log("index: " + index)
                 boxTarget = box;
             }else{
                 /* - Acá está el tema, tengo que asegurarme que me devuelva un box libre - */
-            }
-            counter++;
+                boxTarget = document.querySelector(".free");
+                let pos = Number(boxTarget.dataset.index);
+                let index = Number(boxTarget.parentElement.dataset.index); 
+
+                i = index; 
+                j = pos;
+            }       
         });
         
 
 
-        console.log("i: " + i); 
-        console.log("j: " + j);
-        console.log(counter) 
-        console.log(boxTarget)
-        if(board[i][j] == "" && boxTarget !== null){
+        if(board[i][j] == ""){
             setBox(player.marker, i, j, boxTarget);
-        }else if(!box.classList.contains("free")){
+        }else if(!boxTarget.classList.contains("free")){
+            return;
+        }else if(boxTarget === null){
             return;
         }else{
-            console.log("recursive");
             movePc(player);
         }
+        console.log(i); 
+        console.log(j);
+        console.log(board); 
+        console.log(boxTarget)
     }
     
     
-    function gameStart(playerOne, playePc){
+    function gameStart(playerOne, playerPc){
         let boxes = document.querySelectorAll(".box");
     
         boxes.forEach(box => {
             box.addEventListener('click', ()=>{
                 if(box.classList.contains("free")){
-                    box.classList.remove("free");
-                    let pos = Number(box.dataset.index)-1;
+                    let pos = Number(box.dataset.index);
                     let index = Number(box.parentElement.dataset.index);
-
-
-                    setBox(playerOne.marker, index, pos, box);
-                    /* box.textContent = playerOne.marker;  */
+                    if(gameBoard.board[index][pos] == ""){
+                        setBox(playerOne.marker, index, pos, box);
+                    }
+                    movePc(playerPc);
 
                    let isWinnerPlayer = checkWinner(playerOne.marker);
-                   let isWinnerPc = checkColumnWinner(playePc.marker);
-                   
+                   let isWinnerPc = checkWinner(playerPc.marker);
+                   console.log(isWinnerPc)
                     if (isWinnerPlayer == true) {
                         gameOver(playerOne); 
-                        playerOne.setScore();
+                        
                         
                     }else if (isWinnerPc == true){
                         gameOver(playerPc); 
-                        playerPc.setScore();
-                        
+                                            
                     }
-                }
-                
-                
-                    movePc(playePc);
-                
-                
+                }        
             });
         });
         
@@ -252,7 +249,7 @@ const handleGame = (function(){
         modal.style.display = "none";
     }
 
-    function gameOver(playerOne){
+    function gameOver(player){
         
         const modal = document.querySelector('#modal-winner');
         const content = document.querySelector('.content');
@@ -264,8 +261,9 @@ const handleGame = (function(){
         let winner = document.createElement("h2"); 
         let score = document.createElement("div"); 
 
-        winner.textContent = `Congrats: ${playerOne.name}`;
-        score.textContent = `Score: ${playerOne.getScore()}`;
+        player.setScore();
+        winner.textContent = `Congrats: ${player.name}`;
+        score.textContent = `Score: ${player.getScore()}`;
         
         
         content.appendChild(winner);
@@ -298,16 +296,32 @@ const handleGame = (function(){
 
 
 const game = (function(){
-    
-    const playerOne = createPlayer('agus', 'X');
-    const playePc = createPlayer('pc', 'O')
-/*cada vez que se inicia el juego, inicializamos el board*/ 
-    gameBoard.displayBoard();
-    /*Por cada click, actualizamos el estado del juego*/
-    (function game(){
-        handleGame.gameStart(playerOne, playePc); 
+    document.addEventListener('DOMContentLoaded', ()=>{
+        const modalStart = document.querySelector(".start-game");
+        modalStart.classList.add("starting")
 
-    })(gameBoard, playerOne)
+        const start = document.querySelector("#start-game");
+        start.addEventListener("click", ()=>{
+            const formSetGame = document.querySelector(".set-game");
 
+            modalStart.classList.remove("starting"); 
+            const name = document.querySelector(".input-name").value; 
+            const marker = document.querySelector("#marker").value;
+
+            const pcMarker = (marker == 'X') ? "O" : "X";    
+
+            const playerOne = createPlayer(name, marker);
+            const playerPc = createPlayer('pc', pcMarker);
+             /*cada vez que se inicia el juego, inicializamos el board*/ 
+             formSetGame.reset()
+         gameBoard.displayBoard();
+
+            (function game(){
+                handleGame.gameStart(playerOne, playerPc); 
+
+            })(gameBoard, handleGame)
+        });
+
+    });
 
 })();
